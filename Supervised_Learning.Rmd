@@ -1,0 +1,83 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+
+credit_data <- read.csv('creditcard.csv')
+
+credit_features <- c('Time', 'Amount', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10', 'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V17', 'V18', 'V19', 'V20', 'V21', 'V22', 'V23', 'V24', 'V25', 'V26', 'V27', 'V28')
+X_credit <- credit_data[credit_features]
+y_credit <- credit_data$Class
+set.seed(42)
+split_ratio <- 0.8
+num_samples <- nrow(credit_data)
+train_indices <- sample(1:num_samples, split_ratio * num_samples)
+X_train_credit <- X_credit[train_indices, ]
+y_train_credit <- y_credit[train_indices]
+X_test_credit <- X_credit[-train_indices, ]
+y_test_credit <- y_credit[-train_indices]
+
+credit_model <- glm(Class ~ ., data = credit_data, family = binomial(link = 'logit'))
+
+y_pred_credit <- predict(credit_model, newdata = X_test_credit, type = "response")
+y_pred_binary <- ifelse(y_pred_credit > 0.5, 1, 0)
+
+accuracy_credit <- mean(y_pred_binary == y_test_credit)
+
+cat("Accuracy:", accuracy_credit, "\n")
+tpr <- numeric(length = 100)
+fpr <- numeric(length = 100)
+thresholds <- seq(0, 1, length.out = 100)  # Generate thresholds from 0 to 1
+
+for (i in 1:100) {
+  y_pred_binary <- ifelse(y_pred_credit > thresholds[i], 1, 0)
+  conf_matrix <- table(y_pred_binary, y_test_credit)
+
+  if (0 %in% rownames(conf_matrix) && 1 %in% rownames(conf_matrix)) {
+    tpr[i] <- conf_matrix[2, 2] / sum(y_test_credit)
+    fpr[i] <- conf_matrix[2, 1] / sum(1 - y_test_credit)
+  }
+}
+
+roc_auc <- sum((tpr[-1] + tpr[-length(tpr)]) * (fpr[-1] - fpr[-length(fpr)])) / 2
+
+plot(fpr, tpr, type = 'l', col = 'blue', lwd = 2, xlim = c(0, 1), ylim = c(0, 1),
+     xlab = 'False Positive Rate (1 - Specificity)', ylab = 'True Positive Rate (Sensitivity)',
+     main = paste('ROC Curve (AUC =', round(roc_auc, 2), ')'))
+abline(h = 0, v = 1, col = 'red', lty = 2)
+
+```
+
+Part 1
+
+```{r}
+df <- read.csv('household_energy_usage_regression.csv')
+df <- na.omit(df)
+head(df)
+
+features <- c('temperatureF', 'humidity', 'dewpointC')
+X <- df[, features]
+y <- df$kwh
+
+set.seed(42) 
+train_indices <- sample(1:nrow(X), 0.8 * nrow(X))  # 80% training, 20% testing
+X_train <- X[train_indices, ]
+y_train <- y[train_indices]
+X_test <- X[-train_indices, ]
+y_test <- y[-train_indices]
+df <- data.frame(X_train, kwh = y_train)
+energy_model <- lm(kwh ~ ., data = df)
+
+y_predictions <- predict(energy_model, newdata = data.frame(X_test))
+
+mse_score <- mean((y_test - y_predictions)^2)
+mae_score <- mean(abs(y_test - y_predictions))
+
+cat("Mean Squared Error:", mse_score, "\n")
+cat("Mean Absolute Error:", mae_score, "\n")
+
+```
+
